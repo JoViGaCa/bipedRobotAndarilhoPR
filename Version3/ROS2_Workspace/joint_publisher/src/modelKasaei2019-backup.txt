@@ -1,0 +1,314 @@
+#include <trajectory_msgs/msg/joint_trajectory.hpp>
+#include <trajectory_msgs/msg/joint_trajectory_point.hpp>
+#include <std_msgs/msg/float64.hpp>
+#include <sensor_msgs/msg/imu.hpp>
+#include <iostream>
+#include <rclcpp/rclcpp.hpp>
+#include <math.h>
+#include <chrono>
+#include "sensor_filter/sensor_filter.h"
+#include "stimate_state/stimate_state.h"
+#include "state_space_controller/state_space_controller.h"
+#include <eigen3/Eigen/Dense>
+
+using std::placeholders::_1;
+using namespace std::chrono_literals;
+
+class modelKasaei2019: public rclcpp::Node{
+    public:
+        modelKasaei2019():Node("modelKasaei2019"){
+
+            traj.joint_names.resize(10);
+            traj.joint_names[0] = "junta_quadril_direito";
+            traj.joint_names[1] = "junta_quadril_esquerdo";
+            traj.joint_names[2] = "junta_perna1_direita";
+            traj.joint_names[3] = "junta_perna1_esquerda";
+            traj.joint_names[4] = "junta_perna2_direita";
+            traj.joint_names[5] = "junta_perna2_esquerda";
+            traj.joint_names[6] = "junta_torn_direito";
+            traj.joint_names[7] = "junta_torn_esquerdo";
+            traj.joint_names[8] = "junta_pe_direito";
+            traj.joint_names[9] = "junta_pe_esquerdo";
+            traj.header.frame_id="tronco_link";
+            traj.points.resize(1);
+            traj.points[0].positions={0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+            this->joint_pub = this->create_publisher<trajectory_msgs::msg::JointTrajectory>("/set_joint_trajectory", 50);
+            this->com_pub = this->create_publisher<std_msgs::msg::Float64>("/center_of_mass", 50);
+            this->reference_pub = this->create_publisher<std_msgs::msg::Float64>("/reference_value", 50);
+            this->sensor1 = this->create_subscription<sensor_msgs::msg::Imu>("imu_plugin1/out",50,std::bind(&modelKasaei2019::sensor1CallBack,this, _1));
+            this->sensor2 = this->create_subscription<sensor_msgs::msg::Imu>("imu_plugin2/out",50,std::bind(&modelKasaei2019::sensor2CallBack,this, _1));
+            
+            Eigen::MatrixXd A(2,2);
+            Eigen::MatrixXd B(2,1);
+            Eigen::MatrixXd C(1,2);
+            Eigen::MatrixXd D(1,1);
+            Eigen::MatrixXd K(1,2);  // Proportional gain matrix
+            Eigen::MatrixXd Ki(1,1); // Integral gain matrix
+
+            w = sqrt(3.6/9.8);
+            A << -w, w, 0, w;
+            B << 0, -w;
+            C << 1, 0;
+            D << 0;
+            K << -20.5, -8.5;
+            Ki << 25.5;
+
+            system.setSystem(A,B,C,D);
+            controller.setGains(K,Ki);
+
+            timer_ = this->create_wall_timer(50ms, std::bind(&modelKasaei2019::timerCallBack, this));
+
+        }
+
+        void sensor1CallBack(const sensor_msgs::msg::Imu::SharedPtr value){
+            // x por conta da direção do robô
+            value_sensor1_y = filtro1.applyFilterX(value->linear_acceleration.x);
+
+        }
+
+        void sensor2CallBack(const sensor_msgs::msg::Imu::SharedPtr value){
+            // x por conta da direção do robô
+            value_sensor2_y = filtro2.applyFilterY(value->linear_acceleration.x);
+
+        }
+
+        void timerCallBack(){
+            if(agachar == 1){
+                if(count >= 200 && count <= 600){
+                    center_mass[2] = center_mass[2] - dist;
+                    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"Count = %d, CoM = %.5f", count, center_mass[2]);
+                }
+            } else { 
+                applyControl(); 
+            }
+            
+            applyInverseKin();
+            count++;
+            if(count == 600 && agachar == 1){
+                agachar = 0;
+                count = 0;
+            }
+        }
+
+
+
+        void applyControl(){
+            Eigen::VectorXd setpoint(1);
+            setpoint << 0.5;
+
+            Eigen::VectorXd controlInput = controller.calculateControlInput(system, setpoint, dt);
+
+            // Update system state
+            system.updateState(controlInput, dt);
+
+            // Get system output
+            Eigen::VectorXd output = system.getOutput(controlInput);
+
+            center_mass[0] = output(0);
+            reference_value.data = setpoint(0);
+            com_value.data = center_mass[0];
+            com_pub->publish(com_value);
+            reference_pub->publish(reference_value);
+
+            RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"%d - %.5f - %.5f", count, center_mass[0], setpoint(0));
+            //RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"Sensor Values: %.5f - %.5f", sensor1_y_out[10], sensor2_y_out[10]);
+
+        }
+
+        void applyInverseKin(){
+            x_dir = -pe_dir[0]+center_mass[0];
+            y_dir = -pe_dir[1]+center_mass[1];
+            z_dir = -pe_dir[2]+center_mass[2];
+            x_esq = -pe_esq[0]+center_mass[0];
+            y_esq = -pe_esq[1]+center_mass[1];
+            z_esq = -pe_esq[2]+center_mass[2];
+
+            aux1_dir = pow((x_dir-k_dir),2) + pow((z_dir+h),2);
+            aux1_esq = pow((x_esq-k_esq),2) + pow((z_esq+h),2);
+
+            //RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"Aux1 right - left: %.4f || %.4f \n", aux1_dir, aux1_esq);
+
+            aux2_dir = (sqrt(aux1_dir) - 2*q)/(-leg);
+            aux2_esq = (sqrt(aux1_esq) - 2*q)/(-leg);
+
+            //RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"Aux2 right - left: %.4f || %.4f \n", aux2_dir, aux2_esq);
+
+            aux3_dir = (y_dir)/leg;
+            aux3_esq = (y_esq)/leg;
+
+            //RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"Aux3 right - left: %.4f || %.4f \n", aux3_dir, aux3_esq);
+            
+            // cos gama
+            aux4_dir = (pow(aux2_dir,2) + pow(aux3_dir,2) - 2)/2;
+            aux4_esq = (pow(aux2_esq,2) + pow(aux3_esq,2) - 2)/2;
+
+            //RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"Aux4 (cos(gama)) right - left: %.4f || %.4f \n", aux4_dir, aux4_esq);
+
+            gama_dir = abs(atan(sqrt(1-pow(aux4_dir,2))/aux4_dir));
+            gama_esq = abs(atan(sqrt(1-pow(aux4_esq,2))/aux4_esq));
+
+            beta_dir = -abs(atan(aux3_dir/aux2_dir) - atan(sin(gama_dir)/(1+cos(gama_dir))));
+            beta_esq = -abs(atan(aux3_esq/aux2_esq) - atan(sin(gama_esq)/(1+cos(gama_esq))));
+
+            //RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"Atan right - left: %.4f || %.4f \n", atan(aux2_dir/aux3_dir), atan(aux2_esq/aux3_esq));
+            //RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"Atan2 right - left: %.4f || %.4f \n", atan(sin(gama_dir)/(1+cos(gama_dir))), atan(sin(gama_esq)/(1+cos(gama_esq))));
+
+
+            alpha_dir = atan((x_dir - k_dir)/(z_dir + h));
+            alpha_esq = atan((x_esq - k_esq)/(z_esq + h));
+
+            zeta_dir = - alpha_dir;
+            zeta_esq = - alpha_esq;
+
+            delta_dir = - beta_dir - gama_dir;
+            delta_esq = - beta_esq - gama_esq;
+
+
+            traj.points[0].positions[0] = alpha_dir;
+            traj.points[0].positions[1] = alpha_esq;
+            traj.points[0].positions[2] = -beta_dir;
+            traj.points[0].positions[3] = -beta_esq;
+            traj.points[0].positions[4] = -gama_dir;
+            traj.points[0].positions[5] = -gama_esq;
+            traj.points[0].positions[6] = -delta_dir;
+            traj.points[0].positions[7] = -delta_esq;
+            traj.points[0].positions[8] = zeta_dir;
+            traj.points[0].positions[9] = zeta_esq;
+            //RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"Right anlges: %.4f || %.4f || %.4f || %.4f || %.4f \n", alpha_dir, beta_dir, gama_dir, delta_dir, zeta_dir);
+            //RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"Left anlges: %.4f || %.4f || %.4f || %.4f || %.4f \n", alpha_esq, beta_esq, gama_esq, delta_esq, zeta_esq);
+            //RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"Center of mass: %.4f || %.4f || %.4f \n", center_mass[0], center_mass[1], center_mass[2]);
+            joint_pub->publish(traj);
+        }
+
+    private:
+
+        // ROS2
+        rclcpp::TimerBase::SharedPtr timer_;
+        trajectory_msgs::msg::JointTrajectory traj;
+        std_msgs::msg::Float64 com_value;
+        std_msgs::msg::Float64 reference_value;
+        rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr joint_pub;
+        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr com_pub;
+        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr reference_pub;
+        rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr sensor1;
+        rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr sensor2;
+        sensor_msgs::msg::Imu sensor_dir;
+        sensor_msgs::msg::Imu sensor_esq;
+
+        // Cinempatica Inversa
+        double alpha_dir = 0, beta_dir = 0, gama_dir = 0, delta_dir = 0, zeta_dir = 0;
+        double alpha_esq = 0, beta_esq = 0, gama_esq = 0, delta_esq = 0, zeta_esq = 0;
+        double aux1_dir = 0, aux2_dir = 0, aux3_dir = 0, aux4_dir = 0;
+        double aux1_esq = 0, aux2_esq = 0, aux3_esq = 0, aux4_esq = 0;
+        double x_dir = 0, y_dir = 0, z_dir = 0;
+        double x_esq = 0, y_esq = 0, z_esq = 0;
+
+        // Filtro
+        sensor_filter filtro1;
+        sensor_filter filtro2;
+        double value_sensor1_y = 0,value_sensor2_y = 0;
+
+        // Cinemática Inversa
+        double k_dir = -0.9, k_esq = 0.9, h = 0, q = 0.92, leg=-1.08;
+        double pe_dir[3] = {0.9, 0, 0};
+        double pe_esq[3] = {-0.9, 0, 0};
+        double center_mass[3] = {0, 0, 4};
+        double dist = 0.001, t = 0;
+
+        // Controlador
+        StateSpaceModel system;
+        StateSpaceControllerWithIntegral controller;
+        int count = 0, agachar = 1;
+        double w = 0;
+        double dt = 0.05;
+
+
+        // Navegação Inercial
+        stimate_state stimateStateObj;
+
+
+        
+};
+
+int main(int argc, char **argv){
+    rclcpp::init(argc, argv);     
+    rclcpp::spin(std::make_shared<modelKasaei2019>()); 
+    rclcpp::shutdown();
+    return 0;
+}
+
+---------------------------------------------------------
+
+#include "state_space_controller/state_space_controller.h"
+#include <iostream>
+
+
+    void StateSpaceModel::setSystem(const Eigen::MatrixXd& newA, const Eigen::MatrixXd& newB, const Eigen::MatrixXd& newC, const Eigen::MatrixXd& newD){
+        A = newA;
+        B = newB;
+        C = newC;
+        D = newD;
+        state = Eigen::VectorXd::Zero(A.rows());
+    }
+
+    void StateSpaceModel::updateState(const Eigen::VectorXd& input, double dt){
+        state += (A * state + B * input) * dt;
+    }
+
+    Eigen::VectorXd StateSpaceModel::getOutput(const Eigen::VectorXd& input){
+        return C * state + D * input;
+    }
+
+    void StateSpaceControllerWithIntegral::setGains(const Eigen::MatrixXd& newK, const Eigen::MatrixXd& newKi){
+        K = newK;
+        Ki = newKi;
+        integralError = Eigen::VectorXd::Zero(Ki.rows());
+    }
+
+    Eigen::VectorXd StateSpaceControllerWithIntegral::calculateControlInput(const StateSpaceModel& system, const Eigen::VectorXd& setpoint, double dt){
+        Eigen::VectorXd error(1);
+        error << setpoint - system.C*system.state;
+
+        integralError += error * dt;
+
+        return -K * system.state - Ki * integralError + setpoint;
+    }
+
+----------------------------------------------------
+
+
+#include <iostream>
+#include <eigen3/Eigen/Dense>
+
+class StateSpaceModel {
+public:
+    // State variables
+    Eigen::VectorXd state;
+
+    // System matrices
+    Eigen::MatrixXd A, B, C, D;
+
+    // Constructor
+    void setSystem(const Eigen::MatrixXd& newA, const Eigen::MatrixXd& newB, const Eigen::MatrixXd& newC, const Eigen::MatrixXd& newD);
+
+    // Update state function
+    void updateState(const Eigen::VectorXd& input, double dt);
+
+    // Output function
+    Eigen::VectorXd getOutput(const Eigen::VectorXd& input);
+};
+
+class StateSpaceControllerWithIntegral {
+public:
+    Eigen::MatrixXd K;  // Proportional gain matrix
+    Eigen::MatrixXd Ki; // Integral gain matrix
+    Eigen::VectorXd integralError; // Integral of error
+
+    void setGains(const Eigen::MatrixXd& newK, const Eigen::MatrixXd& newKi);
+
+    // Control input calculation with integral action
+    Eigen::VectorXd calculateControlInput(const StateSpaceModel& system, const Eigen::VectorXd& setpoint, double dt);
+};
+
+

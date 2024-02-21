@@ -1,0 +1,716 @@
+<?xml version="1.0"?>
+
+<robot name = "andarilho">
+
+  <link name="base_link">
+  </link>
+
+  <joint name="base_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="tronco_link"/>
+  </joint>
+
+
+  <link name="tronco_link">
+    <visual>
+      <origin xyz = "-1.09 -0.12 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="file:///home/null/Documents/UTFPR/ICRobotica3/ROS2_Workspace/meshes/TorsoSim.stl" scale="0.02 0.02 0.02"/>
+      </geometry>
+      <material name="green">
+        <color rgba="0 1 0 0.5"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz = "-1.09 -0.12 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="file:///home/null/Documents/UTFPR/ICRobotica3/ROS2_Workspace/meshes/TorsoSim.stl" scale="0.02 0.02 0.02"/>
+      </geometry>
+      <surface>
+        <friction>
+          <ode>
+            <mu>0.5</mu>
+            <mu2>0.5</mu2>
+          </ode>
+        </friction>
+      </surface>
+    </collision>
+    <inertial>
+      <origin xyz ="0 0 0" rpy="0 0 0"/>
+      <mass value="0.048" />
+      <!--inertia ixx="0.0" ixy ="0.0" ixz ="0.0" iyy="0.0" iyz="0.0" izz="0.1728"/-->
+      <inertia ixx="0.01943" ixy ="0.0" ixz ="0.0" iyy="0.03732" iyz="0.0" izz="0.01943"/>
+    </inertial>
+  </link>
+
+  <gazebo reference="tronco_link">
+    <mu1>0.8</mu1>
+    <mu2>0.8</mu2>
+    <fdir1>1 1 0</fdir1>
+    <soft_cfm>0.000000</soft_cfm>
+    <soft_erp>0.200000</soft_erp>
+    <kp>100000.000000</kp>
+    <kd>100.000000</kd>
+    <max_vel>1.000000</max_vel>
+    <min_depth>0.001000</min_depth>
+    <material>Gazebo/Green</material>
+  </gazebo>
+
+  <joint name="sensor_esq_joint" type="fixed">
+    <origin xyz ="0.65 0.3 2.2" rpy = "0 0 0"/>
+    <parent link="tronco_link"/>
+    <child link="sensor_esq_link"/>
+  </joint>
+
+  <link name="sensor_esq_link">
+    <visual>
+      <origin xyz = "0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size ="0.4 0.15 0.05" />
+      </geometry>
+      <material name="color1">
+        <color rgba="1 0 0 0.5"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz = "0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size ="0.4 0.15 0.05" />
+      </geometry>
+    </collision>
+  </link>
+
+  <gazebo reference="sensor_esq_link">
+    <gravity>true</gravity>
+    <sensor name="sensor_esq" type="imu">
+      <always_on>true</always_on>
+      <update_rate>20</update_rate>
+      <visualize>true</visualize>
+      <topic>sensor_esq_topic</topic>
+      <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin1">
+        <topicName>sensor_esq_topic</topicName>
+        <bodyName>sensor_esq_link</bodyName>
+        <updateRateHZ>20.0</updateRateHZ>
+        <gaussianNoise>0.0</gaussianNoise>
+        <xyzOffset>0 0 0</xyzOffset>
+        <rpyOffset>0 0 0</rpyOffset>
+        <frameName>sensor_esq_link</frameName>
+        <initialOrientationAsReference>false</initialOrientationAsReference>
+      </plugin>
+      <pose>0 0 0 0 0 0</pose>
+    </sensor>
+  </gazebo>
+
+  <joint name="sensor_dir_joint" type="fixed">
+    <origin xyz ="-0.65 0.3 2.2" rpy = "0 0 0"/>
+    <parent link="tronco_link"/>
+    <child link="sensor_dir_link"/>
+  </joint>
+
+  <link name="sensor_dir_link">
+    <visual>
+      <origin xyz = "0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size ="0.4 0.15 0.05" />
+      </geometry>
+      <material name="color1">
+        <color rgba="1 0 0 0.5"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz = "0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size ="0.4 0.15 0.05" />
+      </geometry>
+    </collision>
+  </link>
+
+  <gazebo reference="sensor_dir_link">
+    <gravity>true</gravity>
+    <sensor name="sensor_dir" type="imu">
+      <always_on>true</always_on>
+      <update_rate>20</update_rate>
+      <visualize>true</visualize>
+      <topic>sensor_dir_topic</topic>
+      <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin2">
+        <topicName>sensor_dir_topic</topicName>
+        <bodyName>sensor_dir_link</bodyName>
+        <updateRateHZ>20.0</updateRateHZ>
+        <gaussianNoise>0.0</gaussianNoise>
+        <xyzOffset>0 0 0</xyzOffset>
+        <rpyOffset>0 0 0</rpyOffset>
+        <frameName>sensor_dir_link</frameName>
+        <initialOrientationAsReference>false</initialOrientationAsReference>
+      </plugin>
+      <pose>0 0 0 0 0 0</pose>
+    </sensor>
+  </gazebo>
+
+  <joint name="junta_quadril_esquerdo" type="revolute">
+    <origin xyz ="0.6 0 0.15" rpy = "0 0 0"/>
+    <parent link="tronco_link"/>
+    <child link="quadril_esq_link"/>
+    <axis xyz = "0 1 0"/>
+    <limit lower="-1.57" upper="1.57" velocity="1" effort="1"/>
+    <dynamics damping="10.0" friction="100.0"/>
+  </joint>
+
+  <link name="quadril_esq_link">
+    <visual>
+      <origin xyz = "-0.35 0.65 0.11" rpy="-1.57 0 -1.57"/>
+      <geometry>
+        <mesh filename="file:///home/null/Documents/UTFPR/ICRobotica3/ROS2_Workspace/meshes/JuntaLateralSim.stl" scale="0.02 0.02 0.02"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 0.5"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz = "-0.35 0.65 0.11" rpy="-1.57 0 -1.57"/>
+      <geometry>
+        <mesh filename="file:///home/null/Documents/UTFPR/ICRobotica3/ROS2_Workspace/meshes/JuntaLateralSim.stl" scale="0.02 0.02 0.02"/>
+      </geometry>
+      <surface>
+        <friction>
+          <ode>
+            <mu>0.5</mu>
+            <mu2>0.5</mu2>
+          </ode>
+        </friction>
+      </surface>
+    </collision>
+    <inertial>
+      <origin xyz ="0 0 0" rpy="0 0 0"/>
+      <mass value="0.0075" />
+      <inertia ixx="0.00207" ixy ="0.0" ixz ="0.0" iyy="0.0" iyz="0.0" izz="0.00207"/>
+    </inertial>
+  </link>
+
+  <gazebo reference="quadril_esq_link">
+    <mu>0.5</mu>
+    <mu2>0.5</mu2>
+    <fdir1>1 1 0</fdir1>
+    <soft_cfm>0.000000</soft_cfm>
+    <soft_erp>0.200000</soft_erp>
+    <kp>100000.000000</kp>
+    <kd>100.000000</kd>
+    <max_vel>1.000000</max_vel>
+    <min_depth>0.001000</min_depth>
+    <material>Gazebo/Blue</material>
+  </gazebo>
+
+  <joint name="junta_quadril_direito" type="revolute">
+    <origin xyz ="-0.6 0 0.15" rpy = "0 0 0"/>
+    <parent link="tronco_link"/>
+    <child link="quadril_dir_link"/>
+    <axis xyz = "0 1 0"/>
+    <limit lower="-1.57" upper="1.57" velocity="1" effort="1"/>
+    <dynamics damping="10.0" friction="100.0"/>
+  </joint>
+
+  <link name="quadril_dir_link">
+    <visual>
+      <origin xyz = "0.35 -0.1 0.11" rpy="-1.57 0 1.57"/>
+      <geometry>
+        <mesh filename="file:///home/null/Documents/UTFPR/ICRobotica3/ROS2_Workspace/meshes/JuntaLateral2Sim.stl" scale="0.02 0.02 0.02"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 0.5"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz = "0.35 -0.1 0.11" rpy="-1.57 0 1.57"/>
+      <geometry>
+        <mesh filename="file:///home/null/Documents/UTFPR/ICRobotica3/ROS2_Workspace/meshes/JuntaLateral2Sim.stl" scale="0.02 0.02 0.02"/>
+      </geometry>
+      <surface>
+        <friction>
+          <ode>
+            <mu>0.5</mu>
+            <mu2>0.5</mu2>
+          </ode>
+        </friction>
+      </surface>
+    </collision>
+    <inertial>
+      <origin xyz ="0 0 0" rpy="0 0 0"/>
+      <mass value="0.0075" />
+      <inertia ixx="0.00207" ixy ="0.0" ixz ="0.0" iyy="0.0" iyz="0.0" izz="0.00207"/>
+    </inertial>
+  </link>
+
+  <gazebo reference="quadril_dir_link">
+    <mu>0.5</mu>
+    <mu2>0.5</mu2>
+    <fdir1>1 1 0</fdir1>
+    <soft_cfm>0.000000</soft_cfm>
+    <soft_erp>0.200000</soft_erp>
+    <kp>100000.000000</kp>
+    <kd>100.000000</kd>
+    <max_vel>1.000000</max_vel>
+    <min_depth>0.001000</min_depth>
+    <material>Gazebo/Blue</material>
+  </gazebo>
+
+  <joint name="junta_perna1_esquerda" type="revolute">
+    <origin xyz ="-0.3 0.27 -0.91" rpy = "0 0 0"/>
+    <parent link="quadril_esq_link"/>
+    <child link="perna1_esq_link"/>
+    <axis xyz = "1 0 0"/>
+    <limit lower="-1.57" upper="1.57" velocity="1" effort="1"/>
+    <dynamics damping="10.0" friction="100.0"/>
+  </joint>
+
+  <link name="perna1_esq_link">
+    <visual>
+      <origin xyz = "0.5 0.165 -1.35" rpy="0 0 3.14159"/>
+      <geometry>
+        <mesh filename="file:///home/null/Documents/UTFPR/ICRobotica3/ROS2_Workspace/meshes/Leg12Sim.stl" scale="0.02 0.02 0.02"/>
+      </geometry>
+      <material name="red">
+        <color rgba="1 0 0 0.5"/>
+      </material>
+    </visual>
+    <collision>
+     <origin xyz = "0.5 0.165 -1.35" rpy="0 0 3.14159"/>
+      <geometry>
+        <mesh filename="file:///home/null/Documents/UTFPR/ICRobotica3/ROS2_Workspace/meshes/Leg12Sim.stl" scale="0.02 0.02 0.02"/>
+      </geometry>
+      <surface>
+        <friction>
+          <ode>
+            <mu>0.5</mu>
+            <mu2>0.5</mu2>
+          </ode>
+        </friction>
+      </surface>
+    </collision>
+    <inertial>
+      <origin xyz ="0 0 0" rpy="0 0 0"/>
+      <mass value="0.010" />
+      <inertia ixx="0.0" ixy ="0.0" ixz ="0.0" iyy="0.0038" iyz="0.0" izz="0.0038"/>
+    </inertial>
+  </link>
+
+  <gazebo reference="perna1_esq_link">
+    <mu>0.5</mu>
+    <mu2>0.5</mu2>
+    <fdir1>1 1 0</fdir1>
+    <soft_cfm>0.000000</soft_cfm>
+    <soft_erp>0.200000</soft_erp>
+    <kp>100000.000000</kp>
+    <kd>100.000000</kd>
+    <max_vel>1.000000</max_vel>
+    <min_depth>0.001000</min_depth>
+    <material>Gazebo/Red</material>
+  </gazebo>
+
+  <joint name="junta_perna1_direita" type="revolute">
+    <origin xyz ="-0.3 0.27 -0.91" rpy = "0 0 0"/>
+    <parent link="quadril_dir_link"/>
+    <child link="perna1_dir_link"/>
+    <axis xyz = "1 0 0"/>
+    <limit lower="-1.57" upper="1.57" velocity="1" effort="1"/>
+    <dynamics damping="10.0" friction="100.0"/>
+  </joint>
+
+  <link name="perna1_dir_link">
+    <visual>
+      <origin xyz = "0.65 0.165 -1.35" rpy="0 0 3.14159"/>
+      <geometry>
+        <mesh filename="file:///home/null/Documents/UTFPR/ICRobotica3/ROS2_Workspace/meshes/Leg11Sim.stl" scale="0.02 0.02 0.02"/>
+      </geometry>
+      <material name="red">
+        <color rgba="1 0 0 0.5"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz = "0.65 0.165 -1.35" rpy="0 0 3.14159"/>
+      <geometry>
+        <mesh filename="file:///home/null/Documents/UTFPR/ICRobotica3/ROS2_Workspace/meshes/Leg11Sim.stl" scale="0.02 0.02 0.02"/>
+      </geometry>
+      <surface>
+        <friction>
+          <ode>
+            <mu>0.5</mu>
+            <mu2>0.5</mu2>
+          </ode>
+        </friction>
+      </surface>
+    </collision>
+    <inertial>
+      <origin xyz ="0 0 0" rpy="0 0 0"/>
+      <mass value="0.01" />
+      <inertia ixx="0.0" ixy ="0.0" ixz ="0.0" iyy="0.0038" iyz="0.0" izz="0.0038"/>
+    </inertial>
+  </link>
+
+  <gazebo reference="perna1_dir_link">
+    <mu1>0.5</mu1>
+    <mu2>0.5</mu2>
+    <fdir1>1 1 0</fdir1>
+    <soft_cfm>0.000000</soft_cfm>
+    <soft_erp>0.200000</soft_erp>
+    <kp>100000.000000</kp>
+    <kd>100.000000</kd>
+    <max_vel>1.000000</max_vel>
+    <min_depth>0.001000</min_depth>
+    <material>Gazebo/Red</material>
+  </gazebo>
+
+  <joint name="junta_perna2_esquerda" type="revolute">
+    <origin xyz ="0 0 -1.08" rpy = "0 0 0"/>
+    <parent link="perna1_esq_link"/>
+    <child link="perna2_esq_link"/>
+    <axis xyz = "1 0 0"/>
+    <limit lower="-1.57" upper="1.57" velocity="1" effort="1"/>
+    <dynamics damping="10.0" friction="100.0"/>
+  </joint>
+
+  <link name="perna2_esq_link">
+    <visual>
+      <origin xyz = "0.7 -0.37 0.1" rpy="0 3.14159 0"/>
+      <geometry>
+        <mesh filename="file:///home/null/Documents/UTFPR/ICRobotica3/ROS2_Workspace/meshes/Leg21Sim.stl" scale="0.02 0.02 0.02"/>
+      </geometry>
+      <material name="green">
+        <color rgba="0 0 1 0.5"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz = "0.7 -0.37 0.1" rpy="0 3.14159 0"/>
+      <geometry>
+        <mesh filename="file:///home/null/Documents/UTFPR/ICRobotica3/ROS2_Workspace/meshes/Leg21Sim.stl" scale="0.02 0.02 0.02"/>
+      </geometry>
+      <surface>
+        <friction>
+          <ode>
+            <mu>0.5</mu>
+            <mu2>0.5</mu2>
+          </ode>
+        </friction>
+      </surface>
+    </collision>
+    <inertial>
+      <origin xyz ="0 0 0" rpy="0 0 0"/>
+      <mass value="0.009" />
+      <inertia ixx="0.0" ixy ="0.0" ixz ="0.0" iyy="0.00349" iyz="0.0" izz="0.00349"/>
+    </inertial>
+  </link>
+
+  <gazebo reference="perna2_esq_link">
+    <mu1>0.5</mu1>
+    <mu2>0.5</mu2>
+    <fdir1>1 1 0</fdir1>
+    <soft_cfm>0.000000</soft_cfm>
+    <soft_erp>0.200000</soft_erp>
+    <kp>100000.000000</kp>
+    <kd>100.000000</kd>
+    <max_vel>1.000000</max_vel>
+    <min_depth>0.001000</min_depth>
+    <material>Gazebo/Green</material>
+  </gazebo>
+
+  <joint name="junta_perna2_direita" type="revolute">
+    <origin xyz ="0 0 -1.08" rpy = "0 0 0"/>
+    <parent link="perna1_dir_link"/>
+    <child link="perna2_dir_link"/>
+    <axis xyz = "1 0 0"/>
+    <limit lower="-1.57" upper="1.57" velocity="1" effort="1"/>
+    <dynamics damping="10.0" friction="100.0"/>
+  </joint>
+
+  <link name="perna2_dir_link">
+    <visual>
+      <origin xyz = "0.68 -0.17 0.1" rpy="0 3.14159 0"/>
+      <geometry>
+        <mesh filename="file:///home/null/Documents/UTFPR/ICRobotica3/ROS2_Workspace/meshes/Leg22Sim.stl" scale="0.02 0.02 0.02"/>
+      </geometry>
+      <material name="green">
+        <color rgba="0 0 1 0.5"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz = "0.68 -0.17 0.1" rpy="0 3.14159 0"/>
+      <geometry>
+        <mesh filename="file:///home/null/Documents/UTFPR/ICRobotica3/ROS2_Workspace/meshes/Leg22Sim.stl" scale="0.02 0.02 0.02"/>
+      </geometry>
+      <surface>
+        <friction>
+          <ode>
+            <mu>0.5</mu>
+            <mu2>0.5</mu2>
+          </ode>
+        </friction>
+      </surface>
+    </collision>
+    <inertial>
+      <origin xyz ="0 0 0" rpy="0 0 0"/>
+      <mass value="0.009" />
+      <inertia ixx="0.0" ixy ="0.0" ixz ="0.0" iyy="0.00349" iyz="0.0" izz="0.00349"/>
+    </inertial>
+  </link>
+
+  <gazebo reference="perna2_dir_link">
+    <mu1>0.5</mu1>
+    <mu2>0.5</mu2>
+    <fdir1>1 1 0</fdir1>
+    <soft_cfm>0.000000</soft_cfm>
+    <soft_erp>0.200000</soft_erp>
+    <kp>100000.000000</kp>
+    <kd>100.000000</kd>
+    <max_vel>1.000000</max_vel>
+    <min_depth>0.001000</min_depth>
+    <material>Gazebo/Green</material>
+  </gazebo>
+
+  <joint name="junta_torn_esquerdo" type="revolute">
+    <origin xyz ="0 0 -1.08" rpy = "0 0 0"/>
+    <parent link="perna2_esq_link"/>
+    <child link="torn_esq_link"/>
+    <axis xyz = "1 0 0"/>
+    <limit lower="-1.57" upper="1.57" velocity="1" effort="1"/>
+    <dynamics damping="10.0" friction="100.0"/>
+  </joint>
+
+  <link name="torn_esq_link">
+    <visual>
+      <origin xyz = "-0.09 -0.33 0.1" rpy="-1.57 0 0"/>
+      <geometry>
+        <mesh filename="file:///home/null/Documents/UTFPR/ICRobotica3/ROS2_Workspace/meshes/JuntaLateral2Sim.stl" scale="0.02 0.02 0.02"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 0.5"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz = "-0.09 -0.33 0.1" rpy="-1.57 0 0"/>
+      <geometry>
+        <mesh filename="file:///home/null/Documents/UTFPR/ICRobotica3/ROS2_Workspace/meshes/JuntaLateral2Sim.stl" scale="0.02 0.02 0.02"/>
+      </geometry><surface>
+        <friction>
+          <ode>
+            <mu>0.5</mu>
+            <mu2>0.5</mu2>
+          </ode>
+        </friction>
+      </surface>
+
+    </collision>
+    <inertial>
+      <origin xyz ="0 0 0" rpy="0 0 0"/>
+      <mass value="0.0075" />
+      <inertia ixx="0.0" ixy ="0.0" ixz ="0.0" iyy="0.0075" iyz="0.0" izz="0.0075"/>
+    </inertial>
+  </link>
+
+  <gazebo reference="torn_esq_link">
+    <mu1>0.5</mu1>
+    <mu2>0.5</mu2>
+    <fdir1>1 1 0</fdir1>
+    <soft_cfm>0.000000</soft_cfm>
+    <soft_erp>0.200000</soft_erp>
+    <kp>100000.000000</kp>
+    <kd>100.000000</kd>
+    <max_vel>1.000000</max_vel>
+    <min_depth>0.001000</min_depth>
+    <material>Gazebo/Blue</material>
+  </gazebo>
+
+  <joint name="junta_torn_direito" type="revolute">
+    <origin xyz ="0 0 -1.08" rpy = "0 0 0"/>
+    <parent link="perna2_dir_link"/>
+    <child link="torn_dir_link"/>
+    <axis xyz = "1 0 0"/>
+    <limit lower="-1.57" upper="1.57" velocity="1" effort="1"/>
+    <dynamics damping="10.0" friction="100.0"/>
+  </joint>
+
+  <link name="torn_dir_link">
+    <visual>
+      <origin xyz = "-0.09 -0.33 0.1" rpy="-1.57 0 0"/>
+      <geometry>
+        <mesh filename="file:///home/null/Documents/UTFPR/ICRobotica3/ROS2_Workspace/meshes/JuntaLateralSim.stl" scale="0.02 0.02 0.02"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 0.5"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz = "-0.09 -0.33 0.1" rpy="-1.57 0 0"/>
+      <geometry>
+        <mesh filename="file:///home/null/Documents/UTFPR/ICRobotica3/ROS2_Workspace/meshes/JuntaLateralSim.stl" scale="0.02 0.02 0.02"/>
+      </geometry>
+      <surface>
+        <friction>
+          <ode>
+            <mu>0.5</mu>
+            <mu2>0.5</mu2>
+          </ode>
+        </friction>
+      </surface>
+    </collision>
+    <inertial>
+      <origin xyz ="0 0 0" rpy="0 0 0"/>
+      <mass value="0.0075" />
+      <inertia ixx="0.0" ixy ="0.0" ixz ="0.0" iyy="0.0075" iyz="0.0" izz="0.0075"/>
+    </inertial>
+  </link>
+
+  <gazebo reference="torn_dir_link">
+    <mu1>0.5</mu1>
+    <mu2>0.5</mu2>
+    <fdir1>1 1 0</fdir1>
+    <soft_cfm>0.000000</soft_cfm>
+    <soft_erp>0.200000</soft_erp>
+    <kp>100000.000000</kp>
+    <kd>100.000000</kd>
+    <max_vel>1.000000</max_vel>
+    <min_depth>0.001000</min_depth>
+    <material>Gazebo/Blue</material>
+  </gazebo>
+
+  <joint name="junta_pe_esquerdo" type="revolute">
+    <origin xyz ="0.295 -0.24 -0.92" rpy = "0 0 0"/>
+    <parent link="torn_esq_link"/>
+    <child link="pe_esq_link"/>
+    <axis xyz = "0 1 0"/>
+    <limit lower="-1.57" upper="1.57" velocity="1" effort="1"/>
+    <dynamics damping="10.0" friction="100.0"/>
+  </joint>
+
+  <link name="pe_esq_link">
+    <visual>
+      <origin xyz = "0.5 1.06 -0.28" rpy="0 0 3.14159"/>
+      <geometry>
+        <mesh filename="file:///home/null/Documents/UTFPR/ICRobotica3/ROS2_Workspace/meshes/Feet22Sim.stl" scale="0.02 0.02 0.02"/>
+      </geometry>
+      <material name="red">
+        <color rgba="1 0 0 0.5"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz = "0.5 1.06 -0.28" rpy="0 0 3.14159"/>
+      <geometry>
+        <mesh filename="file:///home/null/Documents/UTFPR/ICRobotica3/ROS2_Workspace/meshes/Feet22Sim.stl" scale="0.02 0.02 0.02"/>
+      </geometry>
+      <surface>
+        <friction>
+          <ode>
+            <mu>0.5</mu>
+            <mu2>0.5</mu2>
+          </ode>
+        </friction>
+      </surface>
+    </collision>
+    <inertial>
+      <origin xyz ="0 0 0" rpy="0 0 0"/>
+      <mass value="0.0115" />
+      <inertia ixx="0.0000018" ixy ="0.0" ixz ="0.0" iyy="0.0" iyz="0.0" izz="0.0000018"/>
+    </inertial>
+  </link>
+
+  <gazebo reference="pe_esq_link">
+    <mu1>0.9</mu1>
+    <mu2>0.9</mu2>
+    <fdir1>0 0 0</fdir1>
+    <soft_cfm>0.000000</soft_cfm>
+    <soft_erp>0.200000</soft_erp>
+    <kp>100000.000000</kp>
+    <kd>100.000000</kd>
+    <max_vel>1.000000</max_vel>
+    <min_depth>0.001000</min_depth>
+    <material>Gazebo/Red</material>
+  </gazebo>
+
+  <joint name="junta_pe_direito" type="revolute">
+    <origin xyz ="0.295 -0.24 -0.92" rpy = "0 0 0"/>
+    <parent link="torn_dir_link"/>
+    <child link="pe_dir_link"/>
+    <axis xyz = "0 1 0"/>
+    <limit lower="-1.57" upper="1.57" velocity="1" effort="1"/>
+    <dynamics damping="10.0" friction="100.0"/>
+  </joint>
+
+  <link name="pe_dir_link">
+    <visual>
+      <origin xyz = "0.3 1.06 -0.28" rpy="0 0 3.14159"/>
+      <geometry>
+        <mesh filename="file:///home/null/Documents/UTFPR/ICRobotica3/ROS2_Workspace/meshes/Feet21Sim.stl" scale="0.02 0.02 0.02"/>
+      </geometry>
+      <material name="red">
+        <color rgba="1 0 0 0.5"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz = "0.3 1.06 -0.28" rpy="0 0 3.14159"/>
+      <geometry>
+        <mesh filename="file:///home/null/Documents/UTFPR/ICRobotica3/ROS2_Workspace/meshes/Feet21Sim.stl" scale="0.02 0.02 0.02"/>
+      </geometry>
+      <surface>
+        <friction>
+          <ode>
+            <mu>0.5</mu>
+            <mu2>0.5</mu2>
+          </ode>
+        </friction>
+      </surface>
+    </collision>
+    <inertial>
+      <origin xyz ="0 0 0" rpy="0 0 0"/>
+      <mass value="0.0115" />
+      <inertia ixx="0.0000018" ixy ="0.0" ixz ="0.0" iyy="0.0" iyz="0.0" izz="0.0000018"/>
+    </inertial>
+  </link>
+
+
+  <gazebo reference="pe_dir_link">
+    <mu1>0.9</mu1>
+    <mu2>0.9</mu2>
+    <fdir1>0 0 0</fdir1>
+    <soft_cfm>0.000000</soft_cfm>
+    <soft_erp>0.200000</soft_erp>
+    <kp>100000.000000</kp>
+    <kd>100.000000</kd>
+    <max_vel>1.000000</max_vel>
+    <min_depth>0.001000</min_depth>
+    <material>Gazebo/Red</material>
+  </gazebo>
+
+  <gazebo>
+    <plugin name="gazebo_ros_joint_state_publisher" 
+        filename="gazebo_ros_joint_state_publisher.so">
+        <updateRate>40</updateRate>
+        <jointName>junta_quadril_direito</jointName>
+        <jointName>junta_quadril_esquerdo</jointName>
+        <jointName>junta_perna1_direita</jointName>
+        <jointName>junta_perna1_esquerda</jointName>
+        <jointName>junta_perna2_direita</jointName>
+        <jointName>junta_perna2_esquerda</jointName>
+        <jointName>junta_torn_direito</jointName>
+        <jointName>junta_torn_esquerdo</jointName>
+        <jointName>junta_pe_direito</jointName>
+        <jointName>junta_pe_esquerdo</jointName>
+    </plugin>
+  </gazebo>
+
+  <gazebo>
+    <plugin name="gazebo_ros_joint_pose_trajectory" 
+        filename="libgazebo_ros_joint_pose_trajectory.so">
+        <updateRate>40</updateRate>
+    </plugin>
+  </gazebo>
+
+  <gazebo>
+    <plugin name="gazebo_ros_state" filename="libgazebo_ros_state.so">
+      <ros>
+        <namespace>/gazebo</namespace>
+      </ros>
+      <update_rate>0.05</update_rate>
+    </plugin>
+  </gazebo>
+
+  
+  
+</robot>

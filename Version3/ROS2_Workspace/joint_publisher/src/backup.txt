@@ -1,0 +1,15 @@
+double w = 0;
+        int count = 0, agachar = 1;
+        double state_vector[2] = {0,0};
+        double state_back = 0;
+        double stimated_state_vector[2] = {0,0};
+        double matrixA[2][2] = {{-W, W},{0, W}};
+        double matrixB[2] = {0, W};
+        double matrixC[2] = {1, 0};
+        double matrixK[2] = {-20.5, -8.5};
+        double aux1[2] = {0,0};
+        double aux3[2] = {0,0};
+        double h_int = 25.5;
+        double int_error = 0;
+        double x_ref = 0.5;
+        double dt = 0.05;
